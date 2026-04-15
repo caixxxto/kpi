@@ -135,7 +135,6 @@ class _KanbanBoardState extends State<KanbanBoard> {
   Widget _buildColumn(int parentId, List<KTask> tasks) {
     return Container(
       width: 320,
-      margin: const EdgeInsets.only(right: 0),
       decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.circular(12),
@@ -192,10 +191,10 @@ class _KanbanBoardState extends State<KanbanBoard> {
                         _draggingTask != null &&
                         task.name == _draggingTask!.name;
 
-                    return AnimatedContainer(
+                    return AnimatedSize(
                       key: ValueKey(task.name),
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOut,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOut,
                       child: isDragging
                           ? Opacity(opacity: 0.35, child: SizedBox(height: 30))
                           : _buildDraggableTaskCard(
