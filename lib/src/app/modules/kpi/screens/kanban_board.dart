@@ -292,7 +292,7 @@ class _KanbanBoardState extends State<KanbanBoard> {
       },
       feedback: Material(
         color: Colors.transparent,
-        child: SizedBox(width: 280, child: _buildTaskCard(task)),
+        child: SizedBox(width: 320, child: _buildTaskCard(task)),
       ),
       childWhenDragging: const SizedBox.shrink(),
       child: _buildTaskCard(task),
