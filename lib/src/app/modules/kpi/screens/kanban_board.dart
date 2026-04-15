@@ -183,26 +183,89 @@ class _KanbanBoardState extends State<KanbanBoard> {
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(0),
-                  itemCount: display.length,
+                  itemCount: display.length + 1,
                   itemBuilder: (context, index) {
-                    final task = display[index];
+                    if (index < display.length) {
+                      final task = display[index];
 
-                    final isDragging =
-                        _draggingTask != null &&
-                        task.name == _draggingTask!.name;
+                      final isDragging =
+                          _draggingTask != null &&
+                          task.name == _draggingTask!.name;
 
-                    return AnimatedSize(
-                      key: ValueKey(task.name),
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      child: isDragging
-                          ? Opacity(opacity: 0.35, child: SizedBox(height: 30))
-                          : _buildDraggableTaskCard(
-                              parentId: parentId,
-                              taskIndex: index,
-                              task: task,
-                            ),
-                    );
+                      return AnimatedSize(
+                        key: ValueKey(task.name),
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        child: isDragging
+                            ? Opacity(
+                                opacity: 0.35,
+                                child: SizedBox(height: 30),
+                              )
+                            : _buildDraggableTaskCard(
+                                parentId: parentId,
+                                taskIndex: index,
+                                task: task,
+                              ),
+                      );
+                    } else {
+                      return Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF222126),
+                          ),
+                          onPressed: () async {
+                            final taskName = await showDialog<String>(
+                              context: context,
+                              builder: (context) {
+                                String input = '';
+                                return AlertDialog(
+                                  title: const Text('Название новой карточки'),
+                                  content: TextField(
+                                    autofocus: true,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Введите название',
+                                    ),
+                                    onChanged: (value) {
+                                      input = value;
+                                    },
+                                    onSubmitted: (value) {
+                                      Navigator.of(context).pop(value);
+                                    },
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(),
+                                      child: const Text('Отмена'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          Navigator.of(context).pop(input),
+                                      child: const Text('Добавить'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+
+                            if (taskName != null &&
+                                taskName.trim().isNotEmpty) {
+                              setState(() {
+                                final newTask = KTask(
+                                  name: taskName.trim(),
+                                  parentId: parentId,
+                                  order: groupedTasks[parentId]?.length ?? 0,
+                                );
+                                groupedTasks[parentId]?.add(newTask);
+                                _updateOrders(parentId);
+                              });
+                            }
+                          },
+                          child: const Text('Добавить карточку'),
+                        ),
+                      );
+                    }
                   },
                 );
               },
