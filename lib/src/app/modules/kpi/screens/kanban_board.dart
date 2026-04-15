@@ -25,6 +25,9 @@ class _KanbanBoardState extends State<KanbanBoard> {
   int? _lastCalculatedIndex;
   int? _lastCalculatedParent;
 
+  final Map<int, bool> _isAddingCard = {};
+  final Map<int, TextEditingController> _newCardControllers = {};
+
   @override
   void initState() {
     super.initState();
@@ -183,10 +186,14 @@ class _KanbanBoardState extends State<KanbanBoard> {
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(0),
-                  itemCount: display.length,
+                  itemCount:
+                      display.length + 1,
                   itemBuilder: (context, index) {
-                    final task = display[index];
+                    if (index == display.length) {
+                      return _buildAddCardButton(parentId);
+                    }
 
+                    final task = display[index];
                     final isDragging =
                         _draggingTask != null &&
                         task.name == _draggingTask!.name;
@@ -211,6 +218,104 @@ class _KanbanBoardState extends State<KanbanBoard> {
         ],
       ),
     );
+  }
+
+  Widget _buildAddCardButton(int parentId) {
+    _newCardControllers.putIfAbsent(parentId, () => TextEditingController());
+    _isAddingCard.putIfAbsent(parentId, () => false);
+
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _isAddingCard[parentId] = true;
+            });
+          },
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              border: Border.all(color: const Color(0xFF242424), width: 0),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.add, size: 16, color: Color(0xFFEDEDED)),
+                SizedBox(width: 8),
+                Text(
+                  'Добавить карточку',
+                  style: TextStyle(color: Color(0xFFEDEDED), fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_isAddingCard[parentId]!)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1A),
+              border: Border.all(color: const Color(0xFF242424), width: 0),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _newCardControllers[parentId],
+                    autofocus: true,
+                    style: const TextStyle(color: Color(0xFFEDEDED)),
+                    decoration: const InputDecoration(
+                      hintText: 'Название карточки',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 4,
+                      ),
+                    ),
+                    onSubmitted: (_) => _addNewCard(parentId),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.check, color: Colors.greenAccent),
+                  onPressed: () => _addNewCard(parentId),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.redAccent),
+                  onPressed: () {
+                    setState(() {
+                      _isAddingCard[parentId] = false;
+                      _newCardControllers[parentId]?.clear();
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _addNewCard(int parentId) {
+    final name = _newCardControllers[parentId]?.text.trim();
+    if (name == null || name.isEmpty) return;
+
+    setState(() {
+      final newTask = KTask(
+        name: name,
+        parentId: parentId,
+        order: groupedTasks[parentId]?.length ?? 0,
+      );
+
+      groupedTasks.putIfAbsent(parentId, () => []).add(newTask);
+      _updateOrders(parentId);
+
+      _newCardControllers[parentId]?.clear();
+      _isAddingCard[parentId] = false;
+    });
   }
 
   Widget _buildHeader(int parentId, List<KTask> tasks) {
@@ -312,6 +417,14 @@ class _KanbanBoardState extends State<KanbanBoard> {
         style: const TextStyle(color: Color(0xFFEDEDED), fontSize: 14),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    for (var controller in _newCardControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 }
 
