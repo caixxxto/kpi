@@ -247,10 +247,6 @@ class _KanbanBoardState extends State<KanbanBoard> {
                     if (index < display.length) {
                       final task = display[index];
 
-                      final isDragging =
-                          _draggingTask != null &&
-                          task.name == _draggingTask!.name;
-
                       if (index < display.length) {
                         final task = display[index];
 
