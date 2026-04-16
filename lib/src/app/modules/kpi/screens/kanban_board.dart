@@ -522,6 +522,17 @@ class _KanbanBoardState extends State<KanbanBoard> {
               style: const TextStyle(color: Color(0xFFEDEDED)),
             ),
           ),
+          GestureDetector(
+            onTap: () => _deleteTask(parentId, taskIndex, task),
+            child: const Padding(
+              padding: EdgeInsets.only(left: 8.0),
+              child: Icon(
+                Icons.delete_outline,
+                color: Colors.redAccent,
+                size: 16,
+              ),
+            ),
+          ),
         ],
       ),
     );
