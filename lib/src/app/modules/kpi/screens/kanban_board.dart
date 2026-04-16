@@ -257,6 +257,7 @@ class _KanbanBoardState extends State<KanbanBoard> {
                                 return AlertDialog(
                                   title: const Text('Название новой карточки'),
                                   content: TextField(
+                                    style: const TextStyle(color: Colors.white),
                                     autofocus: true,
                                     decoration: const InputDecoration(
                                       hintText: 'Введите название',
