@@ -102,8 +102,46 @@ class _KanbanBoardState extends State<KanbanBoard> {
       _currentHoverIndex = null;
       _currentHoverParent = null;
     });
+  }
 
-    //context.read<KpiController>().saveOrder(newParentId, tasks[newTaskIndex].name ?? '');
+  void _deleteTask(int parentId, int taskIndex, KTask task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить карточку?'),
+        content: Text('Вы уверены, что хотите удалить "${task.name}"?'),
+        backgroundColor: const Color(0xFF1C1C1C),
+        titleTextStyle: const TextStyle(
+          color: Color(0xFFEDEDED),
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: const TextStyle(color: Color(0xFF9A9A9A)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(
+              'Отмена',
+              style: TextStyle(color: Color(0xFF9A9A9A)),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              setState(() {
+                groupedTasks[parentId]?.removeAt(taskIndex);
+                _updateOrders(parentId);
+              });
+              Navigator.of(context).pop();
+            },
+            child: const Text('Удалить'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _updateOrders(int parentId) {
@@ -210,11 +248,8 @@ class _KanbanBoardState extends State<KanbanBoard> {
                     } else {
                       return Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF222126),
-                          ),
-                          onPressed: () async {
+                        child: GestureDetector(
+                          onTap: () async {
                             final taskName = await showDialog<String>(
                               context: context,
                               builder: (context) {
@@ -233,13 +268,32 @@ class _KanbanBoardState extends State<KanbanBoard> {
                                       Navigator.of(context).pop(value);
                                     },
                                   ),
+                                  backgroundColor: const Color(0xFF1C1C1C),
+                                  titleTextStyle: const TextStyle(
+                                    color: Color(0xFFEDEDED),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.of(context).pop(),
-                                      child: const Text('Отмена'),
+                                      child: const Text(
+                                        'Отмена',
+                                        style: TextStyle(
+                                          color: Color(0xFF9A9A9A),
+                                        ),
+                                      ),
                                     ),
                                     ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFF222126,
+                                        ),
+                                        foregroundColor: const Color(
+                                          0xFFEDEDED,
+                                        ),
+                                      ),
                                       onPressed: () =>
                                           Navigator.of(context).pop(input),
                                       child: const Text('Добавить'),
@@ -262,7 +316,39 @@ class _KanbanBoardState extends State<KanbanBoard> {
                               });
                             }
                           },
-                          child: const Text('Добавить карточку'),
+                          child: Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0d0d0d),
+                              border: Border.all(
+                                color: const Color(0xFF242424),
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(0),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.add,
+                                  color: Color(0xFF9A9A9A),
+                                  size: 18,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Добавить карточку',
+                                  style: TextStyle(
+                                    color: Color(0xFF9A9A9A),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     }
@@ -355,14 +441,17 @@ class _KanbanBoardState extends State<KanbanBoard> {
       },
       feedback: Material(
         color: Colors.transparent,
-        child: SizedBox(width: 320, child: _buildTaskCard(task)),
+        child: SizedBox(
+          width: 320,
+          child: _buildTaskCard(task, parentId, taskIndex),
+        ),
       ),
       childWhenDragging: const SizedBox.shrink(),
-      child: _buildTaskCard(task),
+      child: _buildTaskCard(task, parentId, taskIndex),
     );
   }
 
-  Widget _buildTaskCard(KTask task) {
+  Widget _buildTaskCard(KTask task, int parentId, int taskIndex) {
     return Container(
       margin: const EdgeInsets.only(bottom: 0),
       padding: const EdgeInsets.all(12),
@@ -370,9 +459,23 @@ class _KanbanBoardState extends State<KanbanBoard> {
         color: const Color(0xFF0d0d0d),
         border: Border.all(color: const Color(0xFF242424), width: 0),
       ),
-      child: Text(
-        task.name ?? 'Без названия',
-        style: const TextStyle(color: Color(0xFFEDEDED), fontSize: 14),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              task.name ?? 'Без названия',
+              style: const TextStyle(color: Color(0xFFEDEDED), fontSize: 14),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _deleteTask(parentId, taskIndex, task),
+            child: const Icon(
+              Icons.delete_outline,
+              color: Color(0xFF9A9A9A),
+              size: 18,
+            ),
+          ),
+        ],
       ),
     );
   }
