@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kpi/src/models/k_task/k_task.dart';
 
+final Map<String, GlobalKey> _taskKeys = {};
+final Map<String, double> _taskHeights = {};
+
 class KanbanBoard extends StatefulWidget {
   final List<KTask> tasks;
   final Function(KTask task, int newParentId, int newOrder)? onTaskMoved;
@@ -187,24 +190,42 @@ class _KanbanBoardState extends State<KanbanBoard> {
                 final box = context.findRenderObject() as RenderBox;
                 final offset = box.globalToLocal(details.offset);
 
-                const itemHeight = 53.0;
+                final list = tasks.where((t) {
+                  return _draggingTask == null || t.name != _draggingTask!.name;
+                }).toList();
 
-                final index = (offset.dy / itemHeight).floor().clamp(
-                  0,
-                  tasks.length,
-                );
+                double currentY = 0;
+                int newIndex = 0;
 
-                if (_lastCalculatedIndex == index &&
+                final draggingHeight = _taskHeights[_draggingTask?.name] ?? 50;
+
+                final adjustedOffsetY = offset.dy - draggingHeight * 1.2;
+
+                for (int i = 0; i < list.length; i++) {
+                  final task = list[i];
+                  final height = _taskHeights[task.name] ?? 50;
+                  final middle = currentY + height / 2;
+
+                  if (adjustedOffsetY < middle) {
+                    newIndex = i;
+                    break;
+                  }
+
+                  currentY += height;
+                  newIndex = i + 1;
+                }
+
+                if (_lastCalculatedIndex == newIndex &&
                     _lastCalculatedParent == parentId) {
                   return;
                 }
 
-                _lastCalculatedIndex = index;
+                _lastCalculatedIndex = newIndex;
                 _lastCalculatedParent = parentId;
 
                 setState(() {
                   _currentHoverParent = parentId;
-                  _currentHoverIndex = index;
+                  _currentHoverIndex = newIndex;
                 });
               },
               onAccept: (data) {
@@ -230,21 +251,47 @@ class _KanbanBoardState extends State<KanbanBoard> {
                           _draggingTask != null &&
                           task.name == _draggingTask!.name;
 
-                      return AnimatedSize(
-                        key: ValueKey(task.name),
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeInOut,
-                        child: isDragging
-                            ? Opacity(
-                                opacity: 0.35,
-                                child: SizedBox(height: 30),
-                              )
-                            : _buildDraggableTaskCard(
-                                parentId: parentId,
-                                taskIndex: index,
-                                task: task,
-                              ),
-                      );
+                      if (index < display.length) {
+                        final task = display[index];
+
+                        final isDragging =
+                            _draggingTask != null &&
+                            task.name == _draggingTask!.name;
+
+                        final isPlaceholder =
+                            _draggingTask != null &&
+                            task.name == _draggingTask!.name &&
+                            _currentHoverParent == parentId &&
+                            index == _currentHoverIndex;
+
+                        return AnimatedSize(
+                          key: ValueKey(task.name),
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOut,
+                          child: () {
+                            if (isPlaceholder) {
+                              return Container(
+                                height: _taskHeights[task.name] ?? 50,
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              );
+                            }
+
+                            if (isDragging) {
+                              return const SizedBox.shrink();
+                            }
+
+                            return _buildDraggableTaskCard(
+                              parentId: parentId,
+                              taskIndex: index,
+                              task: task,
+                            );
+                          }(),
+                        );
+                      }
                     } else {
                       return Padding(
                         padding: const EdgeInsets.all(8.0),
@@ -453,27 +500,26 @@ class _KanbanBoardState extends State<KanbanBoard> {
   }
 
   Widget _buildTaskCard(KTask task, int parentId, int taskIndex) {
+    final key = _taskKeys.putIfAbsent(task.name!, () => GlobalKey());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = key.currentContext;
+      if (ctx != null) {
+        final box = ctx.findRenderObject() as RenderBox;
+        _taskHeights[task.name!] = box.size.height;
+      }
+    });
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 0),
+      key: key,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0d0d0d),
-        border: Border.all(color: const Color(0xFF242424), width: 0),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFF0d0d0d)),
       child: Row(
         children: [
           Expanded(
             child: Text(
               task.name ?? 'Без названия',
-              style: const TextStyle(color: Color(0xFFEDEDED), fontSize: 14),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => _deleteTask(parentId, taskIndex, task),
-            child: const Icon(
-              Icons.delete_outline,
-              color: Color(0xFF9A9A9A),
-              size: 18,
+              style: const TextStyle(color: Color(0xFFEDEDED)),
             ),
           ),
         ],
